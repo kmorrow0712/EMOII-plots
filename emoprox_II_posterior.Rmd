@@ -1,0 +1,1686 @@
+---
+title: "Emoprox II Ridgeline Plots"
+last updated: 03/08/2020
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+  word_document: default
+created by: Kelly Morrow (kmorrow@umd.edu)
+---
+
+
+```{r, include = FALSE}
+
+
+# WARNING: will clear R environment, if you have other projects open be sure you have everything saved that you want!
+rm(list=ls())
+
+# CHANGE THIS TO CURRENT FILE PATH
+
+work_dir <- '/Users/kellymorrow/Box/Lab_related/emoproxII/finalResults/ROI_analysis/'  #MAC
+#setwd(work_dir)
+
+# IMPORT LIBRARIES:
+library(data.table)
+library(ggplot2)
+library(ggridges)
+library(dplyr)
+library(tidyr)
+library(scales)
+library(viridis)
+library(ggthemes)
+library(ggforce)
+library(grid)
+library(gridExtra)
+library(cowplot)
+
+print(cat("Current working dir: ", work_dir))
+```
+
+
+
+```{r, include = FALSE}
+
+# commonalities between plots
+
+rois <- c("L aMCC", "L Amygdala (BLBM)",	"L Amygdala (CeME)",	"L Anterior dorsal insula",	"L Anterior ventral insula (anterior pole)",	"L lBST",	"L Mid Hippocampus",	"L Mid posterior insula",	"L PAG",	"L Thalamus (emoproxI shock intersection)",	"PCC (1)",	"PCC (2)",	"R aMCC",	"R Amygdala (BLBM)",	"R Amygdala (CeME)",	"R Anterior dorsal insula",	"R Anterior ventral insula (anterior pole)",	"R BST",	"R Mid posterior insula",	"R PAG",	"R Posterior Hippocampus",	"R Thalamus (emoproxI shock intersection)",	"vmPFC (from out lab)",	"vmPFC (new 5mm sphere from Hartley paper)")
+
+
+  
+# # theme for posterior plots
+# subset.posterior.theme <- theme(
+#     panel.background = element_blank(),
+#     panel.grid.major.y = element_line(color = "grey"),
+#     plot.title = element_text(size = 6, margin = unit(c(0.3,0,0,0.2),"cm"), face = "plain"), 
+#     legend.title = element_text(size = 4),
+#     legend.text = element_text(size = 3),
+#   #  legend.position = "none",
+#     axis.text.y = element_text(size= 3, color = "black", margin = unit(c(0,-0.05,0,0.05),"cm")),                     
+#    # axis.line.x = element_line(color = "gray"),
+#     axis.text.y.right = element_text(size = 3, color = "black",margin = unit(c(0,0,0,-0.05),"cm")),                  
+#     axis.text.x = element_text(size = 6, color = "black", margin = unit(c(-0.05,0,0,0),"cm")),
+#     plot.margin = unit(c(0,0.05,0,0.07), "cm"),
+#     axis.ticks.x = element_blank(),
+#     axis.ticks.y = element_blank())
+# 
+# 
+# posterior.theme <- theme(
+#     panel.background = element_blank(),
+#     panel.grid.major.y = element_line(color = "grey"),
+#     plot.title = element_text(size = 18, margin = unit(c(0,0.1,.1,02),"cm"), face = "plain", hjust = 0), 
+#     legend.title = element_text(size = 8),
+#     legend.text = element_text(size = 6),
+#    #legend.position = "none",
+#    #aspect.ratio = 3/4,
+#     axis.text.y = element_text(size= 12, color = "black", margin = unit(c(0,-0.05,0,0.05),"cm")),                     
+#    # axis.line.x = element_line(color = "gray"),
+#     axis.text.y.right = element_text(size =12, color = "black",margin = unit(c(0,0,0,-0.05),"cm")),                  
+#     axis.text.x = element_text(size = 15, color = "black", margin = unit(c(0.02,0,0,0),"cm")),
+#     plot.margin = unit(c(0,0.05,0,0.07), "cm"),
+#     axis.ticks.x = element_blank(),
+#     axis.ticks.y = element_blank())
+# 
+# 
+# ROI.posterior.theme <- theme(
+#     panel.background = element_blank(),
+#     panel.grid.major.y = element_line(color = "grey"),
+#     plot.title = element_text(size = 16, margin = unit(c(0.3,0,.1,0.2),"cm"), face = "plain"), 
+#     legend.title = element_text(size = 8),
+#     legend.text = element_text(size = 6),
+#    #legend.position = "none",
+#     axis.text.y = element_text(size= 8, color = "black", margin = unit(c(0,-0.05,0,0.05),"cm")),                     
+#    # axis.line.x = element_line(color = "gray"),
+#     axis.text.y.right = element_text(size = 8, color = "black",margin = unit(c(0,0,0,-0.05),"cm")),                  
+#     axis.text.x = element_text(size =10, color = "black", margin = unit(c(0.02,0,0,0),"cm")),
+#     plot.margin = unit(c(0,0.05,0,0.07), "cm"),
+#     axis.ticks.x = element_blank(),
+#     axis.ticks.y = element_blank())
+
+
+posterior.theme <- theme_stata() +
+theme(
+    plot.background = element_blank(),
+    plot.margin = unit(c(0,0,0.3,0),"cm"),
+    panel.background = element_blank(),
+    panel.grid.major.y = element_line(color = "grey", size = .1),
+    panel.grid.major.x = element_line(linetype = "dotted", size = .1),
+    plot.title = element_text(size = 5, margin = unit(c(0,0.1,0.01,02),"cm"), face = "plain", hjust = 0.5), 
+    axis.line = element_line(size = .1),
+    legend.title = element_text(size = 3),
+    legend.text = element_text(size = 3, angle = 0),
+    #legend.position = c(.91,.20),
+    legend.position = 'none',
+    legend.background = element_blank(),
+    legend.box.background = element_rect(colour = "black", size = .75),
+    axis.title = element_text(size = 2.25),
+    axis.text.x = element_text(size = 2.8, margin = unit(c(0.01,0,0,0), "cm")),
+    axis.text.y = element_text(size= 2.8, color = "black", margin = unit(c(0,-.02,0,0),"cm"), angle = 0, vjust = 0), 
+    axis.text.y.right = element_text(size = 2.8, color = "black",margin = unit(c(0,0,-.5,0),"cm"), angle = 0),      
+    axis.ticks.x = element_line(size = .1),
+    axis.ticks.y = element_blank(),
+    axis.ticks.length = unit(.05, "cm"))
+
+
+```
+
+
+
+
+```{r, include = FALSE}
+
+
+# results from RBA
+
+#results <- read.table("/Users/kellymorrow/Box/Lab_related/EMOII/finalResults/ROI_analysis/uncon_v_con_Intercept.txt", fill = TRUE, sep = ",", header = T)
+results <- read.table("/Users/kellymorrow/Downloads/Intercept_post.txt", sep = "", header = T)
+# results$X <- NULL
+# 
+ df.long <- results %>% gather(ROI)
+ colnames(df.long) <- c("ROI", "Y")
+
+
+# calculate p+ for each ROI
+iterations <- 20000
+
+P <- df.long %>%
+  group_by(ROI) %>%
+  dplyr::summarise((sum(Y > 0)/iterations))
+colnames(P) <- c("ROI", "P+", "mean")
+
+
+P$Pn <- P$`P+`
+ for(i in 1:length(P$ROI)) {
+   if (P$Pn[i]<.5){P$Pn[i] = 1 - P$Pn[i]}
+ }
+
+means <- df.long %>% group_by(ROI) %>% dplyr::summarise(mean(Y))
+P$mean <- means$`mean(Y)`
+P$index <- 1:24
+
+ P$ROI <- as.factor(P$ROI)
+ 
+ # Change labels here: 
+levels(P$ROI) <- c("L aMCC", "L basolateral Amygdala",	"L central/medial amygdala",	"L dorsal anterior Insula",	"L ventral anterior Insula",	"L BST",	"L mid Hippocampus",	"L mid posterior Insula",	"L PAG",	"L Thalamus",	"PCC/Precuneus",	"PCC",	"R aMCC",	"R basolateral Amygdala",	"R central/medial Amygdala",	"R dorsal anterior Insula",	"R ventral anterior Insula",	"R BST",	"R mid posterior Insula",	"R PAG",	"R posterior Hippocampus",	"R Thalamus",	"anterior vmPFC",	"posterior vmPFC")
+
+
+p.RO <- P[order(P$`P+`),]
+
+
+df.long$p <- rep(P$`P+`, each = iterations)
+df.long$pn <- rep(P$Pn, each = iterations)
+df.long$mean <- rep(P$mean, each = iterations)
+df.long$index <- rep(1:24, each = iterations)
+df.long$p.plot <- df.long$p
+df.long$p.plot <- replace(df.long$p.plot, df.long$p.plot > 0.15 & df.long$p.plot < 0.85, NA)
+```
+
+
+### Intercept plot
+
+```{r, echo = FALSE}
+
+intercept <- ggplot(df.long, aes(x = Y, y = as.numeric(reorder(index,p)), group = ROI, fill = p.plot)) +
+  coord_cartesian(xlim = c(-0.16, 0.25)) +
+  geom_density_ridges(quantile_lines = TRUE,
+                      quantiles = 2,
+                      scale = 1.75,
+                      rel_min_height = .01,
+                      color = "#404040",
+                      size = .85) +
+  geom_vline(xintercept = 0, alpha = .85, color = "black", size = 1) +
+  scale_y_continuous(breaks = 1:length(p.RO$ROI),
+                       expand = c(0,0.1),
+                      labels = p.RO$ROI,
+                      sec.axis = sec_axis(~.,
+                                         breaks = 1:length(p.RO$ROI),
+                                         labels = format(round(p.RO$`P+`, 3),nsmall = 2))) + 
+  scale_x_continuous(breaks = c(-0.1, 0, 0.1, 0.2), labels = c("-0.10", "0", "0.10", "0.20")) +
+  scale_fill_gradientn(limits = c(0,1),
+                       colors = c("blue","cyan",
+                                  "gray","yellow","red"),
+                         values = c(0,0.15,
+                                    0.150000001, 0.85,
+                                    0.850000001, 1.0), 
+                        breaks = c(0, 0.15, 0.85, 1)) +
+    scale_color_gradientn(limits = c(0,1),
+                       colors = c("blue","cyan",
+                                  "gray","yellow","red"),
+                         values = c(0,0.15,
+                                    0.150000001, 0.85,
+                                    0.850000001, 1.0), 
+                        breaks = c(0, 0.15, 0.85, 1)) +
+       guides(fill = guide_colorbar(barwidth = 1.5,             
+                                  barheight = 8,
+                                  nbin = 50,
+                                  frame.colour = "black",
+                                  frame.linewidth = 1.5,
+                                  ticks.colour = "black")) +
+theme_stata() +
+theme(
+    plot.background = element_blank(),
+    plot.margin = unit(c(0,0,2,0),"cm"),
+    panel.background = element_blank(),
+    panel.grid.major.y = element_line(color = "grey"),
+    panel.grid.major.x = element_line(linetype = "dotted"),
+    plot.title = element_text(size = 20, margin = unit(c(0,0.1,.1,02),"cm"), face = "plain", hjust = 0.5), 
+    # plot.title.position = "plot", 
+    # plot.caption.position =  "plot",
+    legend.title = element_text(size = 12),
+    legend.text = element_text(size = 10, angle = 0),
+    legend.position = c(.91,.20),
+    legend.background = element_blank(),
+    legend.box.background = element_rect(colour = "black", size = .75),
+    axis.title = element_text(size = 16),
+    axis.text.y = element_text(size= 12, color = "black", margin = unit(c(0,-0.05,0,0.05),"cm"), angle = 0, vjust = 0),      
+    axis.text.y.right = element_text(size = 12, color = "black",margin = unit(c(0,0,0,-0.05),"cm"), angle = 0),              
+    axis.text.x = element_text(size = 12, color = "black", margin = unit(c(0.04,0,0,0),"cm")),
+    axis.ticks.y = element_blank()) +
+  labs(
+    x = NULL,                                                       
+    y = NULL,
+    title = "Uncontrollable vs. Controllable stressor", 
+    fill = "P+") 
+
+
+
+plot <- ggdraw(intercept) + 
+  draw_text("P+", x = .97, y = .96, size= 16) +
+    draw_text("controllable > uncontrollable", x = .33, y = 0.08, size = 16) +
+  draw_text("uncontrollable > controllable", x = .75, y = 0.08, size = 16)
+
+ggsave('/Users/kellymorrow/Box/Figures/EMOII - Limbachia et al 2020/generated_plots/Fig3_intercept_posteriors.png', plot = plot, dpi = 800, heigh = 7, width = 9)
+
+
+plot
+
+
+```
+
+# Covariate plots
+
+
+### BP diff_stdz
+```{r, include = FALSE}
+
+#BPdiff_stdz (RBA results)
+# import covariate data
+
+BPdiff <- read.table('/Users/kellymorrow/Downloads/shock_buttPress_post.txt', fill = TRUE, sep = "", header = T)
+BPdiff$X <- NULL
+
+```
+
+```{r, include = FALSE}
+
+BPdiff.long <- BPdiff %>% gather(ROI)
+colnames(BPdiff.long) <- c("ROI", "Y")
+
+# calculate p+ for each ROI
+iterations <- 20000
+
+P.BPdiff <- BPdiff.long %>%
+  group_by(ROI) %>%
+  dplyr::summarise((sum(Y > 0)/iterations))
+colnames(P.BPdiff) <- c("ROI", "P+", "mean")
+
+P.BPdiff$Pn <- P.BPdiff$`P+`
+ for(i in 1:length(P.BPdiff$ROI)) {
+   if (P.BPdiff$Pn[i]<.5){P.BPdiff$Pn[i] = 1 - P.BPdiff$Pn[i]}
+ }
+
+means <- BPdiff.long %>% group_by(ROI) %>% dplyr::summarise(mean(Y))
+P.BPdiff$mean <- means$`mean(Y)`
+P.BPdiff$index <- 1:24
+
+
+ P.BPdiff$ROI <- as.factor(rois)
+ 
+ # Change labels here: 
+levels(P.BPdiff$ROI) <- c("L aMCC", "L basolateral Amygdala",	"L central/medial amygdala",	"L dorsal anterior Insula",	"L ventral anterior Insula",	"L BST",	"L mid Hippocampus",	"L mid posterior Insula",	"L PAG",	"L Thalamus",	"PCC/Precuneus",	"PCC",	"R aMCC",	"R basolateral Amygdala",	"R central/medial Amygdala",	"R dorsal anterior Insula",	"R ventral anterior Insula",	"R BST",	"R mid posterior Insula",	"R PAG",	"R posterior Hippocampus",	"R Thalamus",	"anterior vmPFC",	"posterior vmPFC")
+
+
+p.BPdiff.RO <- P.BPdiff[order(P.BPdiff$`P+`),]
+
+BPdiff.long$p <- rep(P.BPdiff$`P+`, each = iterations)
+BPdiff.long$pn <- rep(P.BPdiff$Pn, each = iterations)
+BPdiff.long$mean <- rep(P.BPdiff$mean, each = iterations)
+BPdiff.long$index <- rep(1:24, each = iterations)
+BPdiff.long$p.plot <- BPdiff.long$p
+BPdiff.long$p.plot <- replace(BPdiff.long$p.plot, BPdiff.long$p.plot > 0.15 & BPdiff.long$p.plot < 0.85, NA)
+
+
+
+```
+
+```{r, echo = FALSE}
+
+BPdiff <- ggplot(BPdiff.long, aes(x = Y, y = as.numeric(reorder(index,p)), group = ROI, fill = BPdiff.long$p.plot)) +
+  coord_cartesian(xlim = c(-0.20, 0.18)) +
+  geom_density_ridges(quantile_lines = TRUE,
+                      quantiles = 2,
+                      scale = 2.5,
+                      rel_min_height = .01,
+                      color = "#404040",
+                      size = .2) +
+  geom_vline(xintercept = 0, alpha = .85, color = "black", size = .3) +
+  scale_y_continuous(breaks = 1:length(p.BPdiff.RO$ROI),
+                       expand = c(0,0.1),
+                      labels = p.BPdiff.RO$ROI,
+                      sec.axis = sec_axis(~.,
+                                         breaks = 1:length(p.BPdiff.RO$ROI),
+                                         labels = format(round(p.BPdiff.RO$`P+`, 3),nsmall = 2))) + 
+  scale_x_continuous(breaks = c(-0.20, -0.10, 0, 0.10, 0.20), labels = c("-.20","-0.10", "0", "0.10", "0.20")) +
+  scale_fill_gradientn(limits = c(0,1),
+                       colors = c("blue","cyan",
+                                  "#505154","yellow","red"),
+                         values = c(0,0.15,
+                                    0.150000001, 0.85,
+                                    0.850000001, 1.0), 
+                        breaks = c(0, 0.15, 0.85, 1)) +
+    scale_color_gradientn(limits = c(0,1),
+                       colors = c("blue","cyan",
+                                  "gray","yellow","red"),
+                        expand = c(0.05,0),
+                         values = c(0,0.15,
+                                    0.150000001, 0.85,
+                                    0.850000001, 1.0), 
+                        breaks = c(0, 0.15, 0.85, 1)) +
+       guides(fill = guide_colorbar(barwidth = 1,
+                                  barheight = 10,
+                                  nbin = 50,
+                                  frame.colour = "black",
+                                  frame.linewidth = 1.5,
+                                  ticks.colour = "black")) +
+labs(x = NULL, y = NULL, title = "Button presses") +
+posterior.theme
+
+
+plot <- ggdraw(BPdiff) + 
+  draw_text("P+", x = .97, y = .95, size= 4) +
+    draw_text("controllable > uncontrollable", x = .37, y = 0.05, size = 4) +
+  draw_text("uncontrollable > controllable", x = .82, y = 0.05, size = 4)
+
+ggsave('/Users/kellymorrow/Box/Figures/EMOII - Limbachia et al 2020/generated_plots/Supplementary_BPDiff_posteriors.png', plot = plot, dpi = 800, height = 1.5, width = 2)
+
+
+plot
+
+
+
+```
+
+
+
+
+### STATEmean
+
+```{r, include= FALSE}
+
+
+# STATEmean (RBA results)
+# import covariate data
+
+STATEmean <- read.table('/Users/kellymorrow/Downloads/shock_STATEmean_post.txt', fill = TRUE, sep = "", header = T)
+STATEmean$X <- NULL
+
+```
+
+```{r, include = FALSE}
+
+STATEmean.long <- STATEmean %>% gather(ROI)
+colnames(STATEmean.long) <- c("ROI", "Y")
+
+# calculate p+ for each ROI
+iterations <- 20000
+
+STATEmean.P <- STATEmean.long %>%
+  group_by(ROI) %>%
+  dplyr::summarise((sum(Y > 0)/iterations))
+colnames(STATEmean.P) <- c("ROI", "P+", "mean")
+
+
+rois.STATEmean <- as.factor(rois)
+levels(rois.STATEmean) <- c("L aMCC", "L basolateral Amygdala",	"L central/medial amygdala",	"L dorsal anterior Insula",	"L ventral anterior Insula",	"L BST",	"L mid Hippocampus",	"L mid posterior Insula",	"L PAG",	"L Thalamus",	"PCC/Precuneus",	"PCC",	"R aMCC",	"R basolateral Amygdala",	"R central/medial Amygdala",	"R dorsal anterior Insula",	"R ventral anterior Insula",	"R BST",	"R mid posterior Insula",	"R PAG",	"R posterior Hippocampus",	"R Thalamus",	"anterior vmPFC",	"posterior vmPFC")
+
+STATEmean.P$Pn <- STATEmean.P$`P+`
+ for(i in 1:length(STATEmean.P$ROI)) {
+   if (STATEmean.P$Pn[i]<.5){STATEmean.P$Pn[i] = 1 - STATEmean.P$Pn[i]}
+ }
+
+means <- STATEmean.long %>% group_by(ROI) %>% dplyr::summarise(mean(Y))
+STATEmean.P$mean <- means$`mean(Y)`
+STATEmean.P$index <- 1:24
+
+STATEmean.P$ROI <- as.factor(rois)
+ levels(STATEmean.P$ROI) <- c("L aMCC", "L basolateral Amygdala",	"L central/medial amygdala",	"L dorsal anterior Insula",	"L ventral anterior Insula",	"L BST",	"L mid Hippocampus",	"L mid posterior Insula",	"L PAG",	"L Thalamus",	"PCC/Precuneus",	"PCC",	"R aMCC",	"R basolateral Amygdala",	"R central/medial Amygdala",	"R dorsal anterior Insula",	"R ventral anterior Insula",	"R BST",	"R mid posterior Insula",	"R PAG",	"R posterior Hippocampus",	"R Thalamus",	"anterior vmPFC",	"posterior vmPFC")
+
+STATEmean.P.RO <- STATEmean.P[order(STATEmean.P$`P+`),]
+
+
+STATEmean.long$p <- rep(STATEmean.P$`P+`, each = iterations)
+STATEmean.long$pn <- rep(STATEmean.P$Pn, each = iterations)
+STATEmean.long$mean <- rep(STATEmean.P$mean, each = iterations)
+STATEmean.long$index <- rep(1:24, each = iterations)
+STATEmean.long$p.plot <- STATEmean.long$p
+STATEmean.long$p.plot <- replace(STATEmean.long$p.plot, STATEmean.long$p.plot > 0.15 & STATEmean.long$p.plot < 0.85, NA)
+
+
+```
+
+```{r, echo = FALSE}
+
+STATEmean <- ggplot(STATEmean.long, aes(x = Y, y = as.numeric(reorder(index,p)), group = ROI, fill = STATEmean.long$p.plot)) +
+  coord_cartesian(xlim = c(-0.09, 0.13)) +
+  geom_density_ridges(quantile_lines = TRUE,
+                      quantiles = 2,
+                      scale = 2.5,
+                      rel_min_height = .03,
+                      color = "#404040",
+                      size = .2) +
+  geom_vline(xintercept = 0, alpha = .85, color = "black", size = .3) +
+  scale_y_continuous(breaks = 1:length(STATEmean.P.RO$ROI),
+                       expand = c(0,0.1),
+                      labels = STATEmean.P.RO$ROI,
+                      sec.axis = sec_axis(~.,
+                                         breaks = 1:length(STATEmean.P.RO$ROI),
+                                         labels = format(round(STATEmean.P.RO$`P+`, 3),nsmall = 2))) + 
+ scale_x_continuous(breaks = c(-0.1,-0.05, 0, 0.05, 0.1), labels = c("-0.1","-0.05", "0", "0.05","0.1")) +
+  scale_fill_gradientn(limits = c(0,1),
+                       colors = c("blue","cyan",
+                                  "gray","yellow","red"),
+                         values = c(0,0.15,
+                                    0.150000001, 0.85,
+                                    0.850000001, 1.0), 
+                        breaks = c(0, 0.15, 0.85, 1)) +
+    scale_color_gradientn(limits = c(0,1),
+                       colors = c("blue","cyan",
+                                  "gray","yellow","red"),
+                         values = c(0,0.15,
+                                    0.150000001, 0.85,
+                                    0.850000001, 1.0), 
+                        breaks = c(0, 0.15, 0.85, 1)) +
+theme_ridges(center_axis_labels = TRUE, grid = FALSE) +
+posterior.theme + 
+  labs(
+    x = NULL,                                                       
+    y = NULL,
+    title = "State anxiety: mean", 
+    fill = "P+") 
+
+
+plot <- ggdraw(STATEmean) + 
+  draw_text("P+", x = .97, y = .95, size= 4) +
+    draw_text("controllable > uncontrollable", x = .35, y = 0.05, size = 4) +
+  draw_text("uncontrollable > controllable", x = .80, y = 0.05, size = 4)
+
+ggsave('/Users/kellymorrow/Box/Figures/EMOII - Limbachia et al 2020/generated_plots/Supplementary_STATEmean_posteriors.png', plot = plot, dpi = 800, height = 1.5, width = 2)
+
+
+plot
+
+
+
+
+
+
+#ggsave('/Users/kellymorrow/Box/Lab_related/emoproxII/finalResults/plots/A_emoII_STATEmean_posteriors.png',width=6, height=4, dpi = 1200)
+
+
+```
+
+
+### STATEdiff
+
+```{r, include = FALSE}
+
+
+# STATEdiff (RBA results)
+
+# import covariate data
+
+STATEdiff <- read.table('/Users/kellymorrow/Downloads/shock_STATEdiff_post.txt', fill = TRUE, sep = "", header = T)
+STATEdiff$X <- NULL
+
+```
+
+```{r, include = FALSE}
+
+STATEdiff.long <- STATEdiff %>% gather(ROI)
+colnames(STATEdiff.long) <- c("ROI", "Y")
+
+# calculate p+ for each ROI
+iterations <- 20000
+
+STATEdiff.P <- STATEdiff.long %>%
+  group_by(ROI) %>%
+  dplyr::summarise((sum(Y > 0)/iterations))
+colnames(STATEdiff.P) <- c("ROI", "P+", "mean")
+
+
+rois.STATEdiff <- as.factor(rois)
+levels(rois.STATEdiff) <- c("L aMCC", "L basolateral Amygdala",	"L central/medial amygdala",	"L dorsal anterior Insula",	"L ventral anterior Insula",	"L BST",	"L mid Hippocampus",	"L mid posterior Insula",	"L PAG",	"L Thalamus",	"PCC/Precuneus",	"PCC",	"R aMCC",	"R basolateral Amygdala",	"R central/medial Amygdala",	"R dorsal anterior Insula",	"R ventral anterior Insula",	"R BST",	"R mid posterior Insula",	"R PAG",	"R posterior Hippocampus",	"R Thalamus",	"anterior vmPFC",	"posterior vmPFC")
+ 
+ 
+
+STATEdiff.P$Pn <- STATEdiff.P$`P+`
+ for(i in 1:length(STATEdiff.P$ROI)) {
+   if (STATEdiff.P$Pn[i]<.5){STATEdiff.P$Pn[i] = 1 - STATEdiff.P$Pn[i]}
+ }
+
+means <- STATEdiff.long %>% group_by(ROI) %>% dplyr::summarise(mean(Y))
+STATEdiff.P$mean <- means$`mean(Y)`
+STATEdiff.P$index <- 1:24
+
+STATEdiff.P$ROI <- as.factor(rois)
+ levels(STATEdiff.P$ROI) <- c("L aMCC", "L basolateral Amygdala",	"L central/medial amygdala",	"L dorsal anterior Insula",	"L ventral anterior Insula",	"L BST",	"L mid Hippocampus",	"L mid posterior Insula",	"L PAG",	"L Thalamus",	"PCC/Precuneus",	"PCC",	"R aMCC",	"R basolateral Amygdala",	"R central/medial Amygdala",	"R dorsal anterior Insula",	"R ventral anterior Insula",	"R BST",	"R mid posterior Insula",	"R PAG",	"R posterior Hippocampus",	"R Thalamus",	"anterior vmPFC",	"posterior vmPFC")
+
+
+STATEdiff.P.RO <- STATEdiff.P[order(STATEdiff.P$`P+`),]
+
+STATEdiff.long$p <- rep(STATEdiff.P$`P+`, each = iterations)
+STATEdiff.long$pn <- rep(STATEdiff.P$Pn, each = iterations)
+STATEdiff.long$mean <- rep(STATEdiff.P$mean, each = iterations)
+STATEdiff.long$index <- rep(1:24, each = iterations)
+STATEdiff.long$p.plot <- STATEdiff.long$p
+STATEdiff.long$p.plot <- replace(STATEdiff.long$p.plot, STATEdiff.long$p.plot > 0.15 & STATEdiff.long$p.plot < 0.85, NA)
+
+
+```
+
+```{r, echo = FALSE}
+
+STATEdiff <- ggplot(STATEdiff.long, aes(x = Y, y = as.numeric(reorder(index,p)), group = ROI, fill = STATEdiff.long$p.plot)) +
+  coord_cartesian(xlim = c(-0.16, 0.15)) +
+  geom_density_ridges(quantile_lines = TRUE,
+                      quantiles = 2,
+                      scale = 2.5,
+                      rel_min_height = .03,
+                      color = "#404040",
+                      size = .2) +
+  geom_vline(xintercept = 0, alpha = .85, color = "black", size = .3) +
+  scale_y_continuous(breaks = 1:length(STATEdiff.P.RO$ROI),
+                       expand = c(0,0.1),
+                      labels = STATEdiff.P.RO$ROI,
+                      sec.axis = sec_axis(~.,
+                                         breaks = 1:length(STATEdiff.P.RO$ROI),
+                                         labels = format(round(STATEdiff.P.RO$`P+`, 3),nsmall = 2))) + 
+  scale_x_continuous(breaks = c(-0.1, 0, 0.1), labels = c("0.10", "0", "0.10")) +
+  scale_fill_gradientn(limits = c(0,1),
+                       colors = c("blue","cyan",
+                                  "gray","yellow","red"),
+                         values = c(0,0.15,
+                                    0.150000001, 0.85,
+                                    0.850000001, 1.0), 
+                        breaks = c(0, 0.15, 0.85, 1)) +
+    scale_color_gradientn(limits = c(0,1),
+                       colors = c("blue","cyan",
+                                  "gray","yellow","red"),
+                         values = c(0,0.15,
+                                    0.150000001, 0.85,
+                                    0.850000001, 1.0), 
+                        breaks = c(0, 0.15, 0.85, 1)) +
+theme_ridges(center_axis_labels = TRUE, grid = FALSE) +
+posterior.theme + 
+  labs(
+    x = NULL,                                                       
+    y = NULL,
+    title = "State anxiety: difference", 
+    fill = "P+") 
+
+
+plot <- ggdraw(STATEdiff) + 
+  draw_text("P+", x = .97, y = .95, size= 4) +
+    draw_text("controllable > uncontrollable", x = .35, y = 0.05, size = 4) +
+  draw_text("uncontrollable > controllable", x = .80, y = 0.05, size = 4)
+
+ggsave('/Users/kellymorrow/Box/Figures/EMOII - Limbachia et al 2020/generated_plots/Supplementary_STATEdiff_posteriors.png', plot = plot, dpi = 800, height = 1.5, width = 2)
+
+
+plot
+```
+
+### TRAITmean
+
+```{r, include = FALSE}
+
+# TRAITdiff (RBA results)
+# import covariate data
+
+TRAITmean <- read.table('/Users/kellymorrow/Downloads/shock_TRAITmean_post.txt', fill = TRUE, sep = "", header = T)
+TRAITmean$X <- NULL
+
+```
+
+```{r, include = FALSE}
+
+TRAITmean.long <- TRAITmean %>% gather(ROI)
+colnames(TRAITmean.long) <- c("ROI", "Y")
+
+# calculate p+ for each ROI
+iterations <- 20000
+
+TRAITmean.P <- TRAITmean.long %>%
+  group_by(ROI) %>%
+  dplyr::summarise((sum(Y > 0)/iterations))
+colnames(TRAITmean.P) <- c("ROI", "P+", "mean")
+
+
+rois.TRAITmean <- as.factor(rois)
+ levels(rois.TRAITmean) <- c("L aMCC", "L basolateral Amygdala",	"L central/medial amygdala",	"L dorsal anterior Insula",	"L ventral anterior Insula",	"L BST",	"L mid Hippocampus",	"L mid posterior Insula",	"L PAG",	"L Thalamus",	"PCC/Precuneus",	"PCC",	"R aMCC",	"R basolateral Amygdala",	"R central/medial Amygdala",	"R dorsal anterior Insula",	"R ventral anterior Insula",	"R BST",	"R mid posterior Insula",	"R PAG",	"R posterior Hippocampus",	"R Thalamus",	"anterior vmPFC",	"posterior vmPFC")
+
+TRAITmean.P$Pn <- TRAITmean.P$`P+`
+ for(i in 1:length(TRAITmean.P$ROI)) {
+   if (TRAITmean.P$Pn[i]<.5){TRAITmean.P$Pn[i] = 1 - TRAITmean.P$Pn[i]}
+ }
+
+means <- TRAITmean.long %>% group_by(ROI) %>% dplyr::summarise(mean(Y))
+TRAITmean.P$mean <- means$`mean(Y)`
+TRAITmean.P$index <- 1:24
+
+TRAITmean.P$ROI <- as.factor(TRAITmean.P$ROI)
+ levels(TRAITmean.P$ROI) <- c("L aMCC", "L basolateral Amygdala",	"L central/medial amygdala",	"L dorsal anterior Insula",	"L ventral anterior Insula",	"L BST",	"L mid Hippocampus",	"L mid posterior Insula",	"L PAG",	"L Thalamus",	"PCC/Precuneus",	"PCC",	"R aMCC",	"R basolateral Amygdala",	"R central/medial Amygdala",	"R dorsal anterior Insula",	"R ventral anterior Insula",	"R BST",	"R mid posterior Insula",	"R PAG",	"R posterior Hippocampus",	"R Thalamus",	"anterior vmPFC",	"posterior vmPFC")
+
+TRAITmean.P.RO <- TRAITmean.P[order(TRAITmean.P$`P+`),]
+
+
+TRAITmean.long$p <- rep(TRAITmean.P$`P+`, each = iterations)
+TRAITmean.long$pn <- rep(TRAITmean.P$Pn, each = iterations)
+TRAITmean.long$mean <- rep(TRAITmean.P$mean, each = iterations)
+TRAITmean.long$index <- rep(1:24, each = iterations)
+TRAITmean.long$p.plot <- TRAITmean.long$p
+TRAITmean.long$p.plot <- replace(TRAITmean.long$p.plot, TRAITmean.long$p.plot > 0.15 & TRAITmean.long$p.plot < 0.85, NA)
+
+
+```
+
+```{r, echo = FALSE}
+
+TRAITmean <- ggplot(TRAITmean.long, aes(x = Y, y = as.numeric(reorder(index,p)), group = ROI, fill = TRAITmean.long$p.plot)) +
+  coord_cartesian(xlim = c(-0.09, 0.07)) +
+  geom_density_ridges(quantile_lines = TRUE,
+                      quantiles = 2,
+                      scale = 2.5,
+                      rel_min_height = .03,
+                      color = "#404040",
+                      size = .2) +
+  geom_vline(xintercept = 0, alpha = .85, color = "black", size = .3) +
+  #geom_segment(aes(x = 0, y = 0, xend = 0, yend = 26), linetype = "dashed", col = "black", size = 1) +
+  scale_y_continuous(breaks = 1:length(TRAITmean.P.RO$ROI),
+                       expand = c(0,0.1),
+                      labels = TRAITmean.P.RO$ROI,
+                      sec.axis = sec_axis(~.,
+                                         breaks = 1:length(TRAITmean.P.RO$ROI),
+                                         labels = format(round(TRAITmean.P.RO$`P+`, 3),nsmall = 2))) + 
+  scale_x_continuous(breaks = c(-0.05, 0, 0.05), labels = c("-0.05", "0", "0.05")) +
+  scale_fill_gradientn(limits = c(0,1),
+                       colors = c("blue","cyan",
+                                  "gray","yellow","red"),
+                         values = c(0,0.15,
+                                    0.150000001, 0.85,
+                                    0.850000001, 1.0), 
+                        breaks = c(0, 0.15, 0.85, 1)) +
+    scale_color_gradientn(limits = c(0,1),
+                       colors = c("blue","cyan",
+                                  "gray","yellow","red"),
+                         values = c(0,0.15,
+                                    0.150000001, 0.85,
+                                    0.850000001, 1.0), 
+                        breaks = c(0, 0.15, 0.85, 1)) +
+       guides(fill = guide_colorbar(barwidth = 1,
+                                  barheight = 15,
+                                  nbin = 50,
+                                  frame.colour = "black",
+                                  frame.linewidth = 1.5,
+                                  ticks.colour = "black")) +
+theme_ridges(center_axis_labels = TRUE, grid = FALSE) +
+posterior.theme + 
+  labs(
+    x = NULL,                                                       
+    y = NULL,
+    title = "Trait anxiety: mean", 
+    fill = "P+") 
+
+plot <- ggdraw(TRAITmean) + 
+  draw_text("P+", x = .97, y = .95, size= 4) +
+    draw_text("controllable > uncontrollable", x = .35, y = 0.05, size = 4) +
+  draw_text("uncontrollable > controllable", x = .80, y = 0.05, size = 4)
+
+ggsave('/Users/kellymorrow/Box/Figures/EMOII - Limbachia et al 2020/generated_plots/Supplementary_TRAITmean_posteriors.png', plot = plot, dpi = 800, height = 1.5, width = 2)
+
+```
+
+### TRAITdiff
+
+```{r, include = FALSE}
+
+# TRAITdiff (RBA results)
+# import covariate data
+
+TRAITdiff <- read.table('/Users/kellymorrow/Downloads/shock_TRAITdiff_post.txt', fill = TRUE, sep = "", header = T)
+TRAITdiff$X <- NULL
+
+```
+
+```{r, include = FALSE}
+
+TRAITdiff.long <- TRAITdiff %>% gather(ROI)
+colnames(TRAITdiff.long) <- c("ROI", "Y")
+
+# calculate p+ for each ROI
+iterations <- 20000
+
+TRAITdiff.P <- TRAITdiff.long %>%
+  group_by(ROI) %>%
+  dplyr::summarise((sum(Y > 0)/iterations))
+colnames(TRAITdiff.P) <- c("ROI", "P+", "mean")
+
+
+rois.TRAITdiff <- as.factor(rois)
+ levels(rois.TRAITdiff) <- c("L aMCC", "L basolateral Amygdala",	"L central/medial amygdala",	"L dorsal anterior Insula",	"L ventral anterior Insula",	"L BST",	"L mid Hippocampus",	"L mid posterior Insula",	"L PAG",	"L Thalamus",	"PCC/Precuneus",	"PCC",	"R aMCC",	"R basolateral Amygdala",	"R central/medial Amygdala",	"R dorsal anterior Insula",	"R ventral anterior Insula",	"R BST",	"R mid posterior Insula",	"R PAG",	"R posterior Hippocampus",	"R Thalamus",	"anterior vmPFC",	"posterior vmPFC")
+
+TRAITdiff.P$Pn <- TRAITdiff.P$`P+`
+ for(i in 1:length(TRAITdiff.P$ROI)) {
+   if (TRAITdiff.P$Pn[i]<.5){TRAITdiff.P$Pn[i] = 1 - TRAITdiff.P$Pn[i]}
+ }
+
+means <- TRAITdiff.long %>% group_by(ROI) %>% dplyr::summarise(mean(Y))
+TRAITdiff.P$mean <- means$`mean(Y)`
+TRAITdiff.P$index <- 1:24
+
+TRAITdiff.P$ROI <- as.factor(TRAITdiff.P$ROI)
+ levels(TRAITdiff.P$ROI) <- c("L aMCC", "L basolateral Amygdala",	"L central/medial amygdala",	"L dorsal anterior Insula",	"L ventral anterior Insula",	"L BST",	"L mid Hippocampus",	"L mid posterior Insula",	"L PAG",	"L Thalamus",	"PCC/Precuneus",	"PCC",	"R aMCC",	"R basolateral Amygdala",	"R central/medial Amygdala",	"R dorsal anterior Insula",	"R ventral anterior Insula",	"R BST",	"R mid posterior Insula",	"R PAG",	"R posterior Hippocampus",	"R Thalamus",	"anterior vmPFC",	"posterior vmPFC")
+
+
+TRAITdiff.P.RO <- TRAITdiff.P[order(TRAITdiff.P$`P+`),]
+
+TRAITdiff.long$p <- rep(TRAITdiff.P$`P+`, each = iterations)
+TRAITdiff.long$pn <- rep(TRAITdiff.P$Pn, each = iterations)
+TRAITdiff.long$mean <- rep(TRAITdiff.P$mean, each = iterations)
+TRAITdiff.long$index <- rep(1:24, each = iterations)
+TRAITdiff.long$p.plot <- TRAITdiff.long$p
+TRAITdiff.long$p.plot <- replace(TRAITdiff.long$p.plot, TRAITdiff.long$p.plot > 0.15 & TRAITdiff.long$p.plot < 0.85, NA)
+
+
+```
+
+```{r, echo = FALSE}
+
+TRAITdiff <- ggplot(TRAITdiff.long, aes(x = Y, y = as.numeric(reorder(index,p)), group = ROI, fill = TRAITdiff.long$p.plot)) +
+  coord_cartesian(xlim = c(-0.09, 0.07)) +
+  geom_density_ridges(quantile_lines = TRUE,
+                      quantiles = 2,
+                      scale = 2.5,
+                      rel_min_height = .03,
+                      color = "#404040",
+                      size = .2) +
+  geom_vline(xintercept = 0, alpha = .85, color = "black", size = .3) +
+  scale_y_continuous(breaks = 1:length(TRAITdiff.P.RO$ROI),
+                       expand = c(0,0.01),
+                      labels = TRAITdiff.P.RO$ROI,
+                      sec.axis = sec_axis(~.,
+                                         breaks = 1:length(TRAITdiff.P.RO$ROI),
+                                         labels = format(round(TRAITdiff.P.RO$`P+`, 3),nsmall = 2))) + 
+  scale_x_continuous(breaks = c(-0.05, 0, 0.05), labels = c("-0.05", "0", "0.05")) +
+  scale_fill_gradientn(limits = c(0,1),
+                       colors = c("blue","cyan",
+                                  "gray","yellow","red"),
+                         values = c(0,0.15,
+                                    0.150000001, 0.85,
+                                    0.850000001, 1.0), 
+                        breaks = c(0, 0.15, 0.85, 1)) +
+    scale_color_gradientn(limits = c(0,1),
+                       colors = c("blue","cyan",
+                                  "gray","yellow","red"),
+                         values = c(0,0.15,
+                                    0.150000001, 0.85,
+                                    0.850000001, 1.0), 
+                        breaks = c(0, 0.15, 0.85, 1)) +
+       guides(fill = guide_colorbar(barwidth = 1,
+                                  barheight = 15,
+                                  nbin = 50,
+                                  frame.colour = "black",
+                                  frame.linewidth = 1.5,
+                                  ticks.colour = "black")) +
+theme_ridges(center_axis_labels = TRUE, grid = FALSE) +
+posterior.theme + 
+  labs(
+    x = NULL,                                                       
+    y = NULL,
+    title = "Trait anxiety: difference", 
+    fill = "P+") 
+
+plot <- ggdraw(TRAITdiff) + 
+  draw_text("P+", x = .97, y = .95, size= 4) +
+    draw_text("controllable > uncontrollable", x = .35, y = 0.05, size = 4) +
+  draw_text("uncontrollable > controllable", x = .80, y = 0.05, size = 4)
+
+ggsave('/Users/kellymorrow/Box/Figures/EMOII - Limbachia et al 2020/generated_plots/Supplementary_TRAITdiff_posteriors.png', plot = plot, dpi = 800, height = 1.5, width = 2)
+
+```
+
+```{r}
+
+library('cowplot')
+library('ggpubr')
+
+
+
+
+ggarrange(p2, p3, p4, p5, p1, 
+          # labels = c("A", "B", "C"),
+          ncol = 2, nrow = 3)
+ggsave("/Users/kellymorrow/Desktop/test.jpeg", dpi = 800)
+
+```
+
+# Three region SCR posterior plots 
+
+# BST 
+```{r, include = FALSE}
+
+lBST <- read.table('/Users/kellymorrow/Box/Lab_related/EMOII/finalResults/brain-SCR_corr/posteriors/uncon_v_con_lBST_SCR_corr.txt', header = TRUE, sep = ',')
+
+lBST$X <- NULL
+iterations <- 20000
+
+
+rBST <- read.table('/Users/kellymorrow/Box/Lab_related/EMOII/finalResults/brain-SCR_corr/posteriors/uncon_v_con_rBST_SCR_corr.txt', header = TRUE, sep = ',')
+
+rBST$X <- NULL
+
+
+```
+
+
+```{r}
+int.lBST <- lBST %>% 
+  select("Intercept") %>%
+  mutate(Measure = rep("Intercept", length(lBST$Intercept))) %>%
+  mutate(ROI = rep("left BST", length(lBST$Intercept))) %>%
+  mutate(p.val = rep((sum(Intercept > 0)/iterations))) %>%
+  mutate(index = rep("1"))
+
+
+int.rBST <- rBST %>%
+  select("Intercept") %>%
+  mutate(Measure = rep("Intercept", length(rBST$Intercept))) %>%
+  mutate(ROI = rep("right BST", length(rBST$Intercept))) %>%
+  mutate(p.val = rep((sum(Intercept > 0)/iterations))) %>%
+  mutate(index = rep("2"))
+
+```
+
+```{r}
+
+BST <- rbind(int.lBST,int.rBST)
+labels <- BST %>% 
+  select("ROI","p.val","index") %>%
+  unique()
+
+BST.control <- BST %>% 
+    mutate(Measure = replace(Measure, Measure == "Intercept", "Controllability")) %>%
+  ggplot(aes(x = Intercept, y = as.numeric(index), group = ROI, fill = p.val)) +
+  coord_cartesian(xlim = c(-0.12, 0.31), clip = 'off') +
+  geom_density_ridges(quantile_lines = TRUE,
+                      quantiles = 2,
+                      scale = 1.75,
+                      rel_min_height = .01,
+                      color = "#404040",
+                      size = .5) +
+     geom_vline(xintercept = 0, alpha = .85, color = "black", size = .70) +
+    scale_y_continuous(breaks = 1:length(labels$index),
+                       expand = c(0,0),
+                      labels = labels$ROI,
+                      sec.axis = sec_axis(~.,
+                                         breaks = 1:length(labels$index),
+                                         labels = format(round(labels$p.val, 3),nsmall = 2))) +
+    scale_fill_gradientn(limits = c(0,1),
+                       colors = c("blue","cyan",
+                                  "gray","yellow","red"),
+                         values = c(0,0.15,
+                                    0.150000001, 0.85,
+                                    0.850000001, 1.0), 
+                        breaks = c(0, 0.15, 0.85, 1)) +
+       guides(fill = guide_colorbar(barwidth = .75,             
+                                  barheight = 5,
+                                  nbin = 50,
+                                  frame.colour = "black",
+                                  frame.linewidth = .5,
+                                  ticks.colour = "black")) +
+posterior_theme + 
+#   theme_stata() +
+# theme(
+#     plot.background = element_blank(),
+#     panel.background = element_blank(),
+#     axis.line = element_line(size = .5),
+#     panel.grid.major.y = element_line(color = "grey"),
+#     panel.grid.major.x = element_line(linetype = "dotted"),
+#     plot.title = element_text(size = 10, margin = unit(c(0,0.1,.1,02),"cm"), face = "plain", hjust = 0.5), 
+#     legend.title = element_text(size = 7),
+#     legend.text = element_text(size = 5, angle = 0),
+#      legend.position = 'none',
+#     legend.background = element_blank(),
+#     legend.box.background = element_rect(colour = "black", size = .5),
+#     axis.title = element_text(size = 8),
+#     axis.text.y = element_text(size= 7, color = "black", margin = unit(c(0,-0.05,0,0.05),"cm"), angle = 0, vjust = 0),      
+#     axis.text.y.right = element_text(size = 7, color = "black",margin = unit(c(0,0,0,-0.05),"cm"), angle = 0),              
+#     axis.text.x = element_text(size = 7, color = "black", margin = unit(c(0.04,0,0,0),"cm")),
+#     axis.ticks.y = element_blank()) +
+  labs(
+    x = "Uncontrollable vs. Controllable \n (estimated activation)",                                                       
+    y = NULL,
+    title = "Controllability", 
+    fill = "P+") 
+  
+plot <- ggdraw(BST.control) + 
+  draw_text("P+", x = .77, y = .58, size= 8)
+
+ggsave('/Users/kellymorrow/Desktop/BST_intercept_posteriors.png', plot = plot, dpi = 1200, heigh = 1, width = 2)
+
+
+plot
+
+```
+
+```{r}
+
+
+BST.control <- BST %>% 
+    mutate(Measure = replace(Measure, Measure == "Intercept", "Controllability")) %>%
+  ggplot(aes(x = Intercept, y = as.numeric(index), group = ROI, fill = p.val)) +
+  coord_cartesian(xlim = c(-0.13, 0.34), clip = 'off') +
+  scale_y_continuous(breaks = 1:length(labels$index),
+                       expand = c(0,0),
+                      labels = labels$ROI,
+                      sec.axis = sec_axis(~.,
+                                         breaks = 1:length(labels$index),
+                                         labels = format(round(labels$p.val, 3),nsmall = 2))) +
+  geom_density_ridges(quantile_lines = TRUE,
+                      quantiles = 2,
+                      scale = 1.75,
+                      rel_min_height = .005,
+                      color = "#404040",
+                      size = .75) +
+  geom_vline(xintercept = 0, alpha = .85, color = "black", size = .9) +
+  scale_x_continuous(breaks = c(-0.1, 0, 0.1, 0.2, 0.3), labels = c("-0.10", "0", "0.10", "0.20", "0.30")) +
+  scale_fill_gradientn(limits = c(0,1),
+                       colors = c("blue","cyan",
+                                  "gray","yellow","red"),
+                         values = c(0,0.15,
+                                    0.150000001, 0.85,
+                                    0.850000001, 1.0), 
+                        breaks = c(0, 0.15, 0.85, 1)) +
+    scale_color_gradientn(limits = c(0,1),
+                       colors = c("blue","cyan",
+                                  "gray","yellow","red"),
+                         values = c(0,0.15,
+                                    0.150000001, 0.85,
+                                    0.850000001, 1.0), 
+                        breaks = c(0, 0.15, 0.85, 1)) +
+       guides(fill = guide_colorbar(barwidth = 1,             
+                                  barheight = 5,
+                                  nbin = 50,
+                                  frame.colour = "black",
+                                  frame.linewidth = .75,
+                                  ticks.colour = "black")) +
+theme_stata() +
+theme(
+    plot.background = element_blank(),
+    panel.background = element_blank(),
+    panel.grid.major.y = element_line(color = "grey"),
+    panel.grid.major.x = element_line(linetype = "dotted"),
+    plot.margin = unit(c(0,0,1,1.6), "cm"),
+    plot.title = element_text(size = 16, margin = unit(c(0,0.1,.1,02),"cm"), face = "plain", hjust = 0.5), 
+    # plot.title.position = "plot", 
+    # plot.caption.position =  "plot",
+    legend.title = element_text(size = 7),
+    legend.text = element_text(size = 6, angle = 0),
+    legend.position = c(.91,.75),
+    legend.background = element_blank(),
+    legend.box.background = element_rect(colour = "black", size = .5),
+    axis.title = element_text(size = 9),
+    axis.text.y = element_text(size= 7.5, color = "black", margin = unit(c(0,-0.05,0,0.05),"cm"), angle = 0, vjust = 0),      
+    axis.text.y.right = element_text(size = 7.5, color = "black",margin = unit(c(0,0,0,-0.05),"cm"), angle = 0),              
+    axis.text.x = element_text(size = 7.5, color = "black", margin = unit(c(0.04,0,0,0),"cm")),
+    axis.ticks.y = element_blank()) +
+  labs(
+    x = NULL,                                                       
+    y = NULL,
+    title = "Controllability", 
+    fill = "P+") 
+
+
+
+plot <- ggdraw(BST.control) + 
+  draw_text("P+", x = .97, y = .93, size= 11.5) +
+  draw_text("controllable > uncontrollable", x = .23, y = 0.08, size = 11) +
+  draw_text("uncontrollable > controllable", x = .68, y = 0.08, size = 11)
+
+ggsave('/Users/kellymorrow/Desktop/BST_posteriors_test.png', plot = plot, dpi = 800, height = 3, width = 5)
+
+  
+  
+
+
+```
+
+## SMALL VERSION
+
+```{r}
+
+
+BST.control <- BST %>% 
+    mutate(Measure = replace(Measure, Measure == "Intercept", "Controllability")) %>%
+  ggplot(aes(x = Intercept, y = as.numeric(index), group = ROI, fill = p.val)) +
+  coord_cartesian(xlim = c(-0.13, 0.34), clip = 'off') +
+  scale_y_continuous(breaks = 1:length(labels$index),
+                       expand = c(0,0),
+                      labels = labels$ROI,
+                      sec.axis = sec_axis(~.,
+                                         breaks = 1:length(labels$index),
+                                         labels = format(round(labels$p.val, 3),nsmall = 2))) +
+  geom_density_ridges(quantile_lines = TRUE,
+                      quantiles = 2,
+                      #scale = 1.75,
+                      rel_min_height = .005,
+                      color = "#404040",
+                      size = .2) +
+  geom_vline(xintercept = 0, alpha = .85, color = "black", size = .25) +
+  scale_x_continuous(breaks = c(-0.1, 0, 0.1, 0.2, 0.3), labels = c("-0.10", "0", "0.10", "0.20", "0.30")) +
+  scale_fill_gradientn(limits = c(0,1),
+                       colors = c("blue","cyan",
+                                  "gray","yellow","red"),
+                         values = c(0,0.15,
+                                    0.150000001, 0.85,
+                                    0.850000001, 1.0), 
+                        breaks = c(0, 0.15, 0.85, 1)) +
+    scale_color_gradientn(limits = c(0,1),
+                       colors = c("blue","cyan",
+                                  "gray","yellow","red"),
+                         values = c(0,0.15,
+                                    0.150000001, 0.85,
+                                    0.850000001, 1.0), 
+                        breaks = c(0, 0.15, 0.85, 1)) +
+       guides(fill = guide_colorbar(barwidth = .3,             
+                                  barheight = 2,
+                                  nbin = 50,
+                                  frame.colour = "black",
+                                  frame.linewidth = .25,
+                                  ticks.colour = "black")) +
+theme_stata() +
+theme(
+    plot.background = element_blank(),
+    plot.margin = unit(c(0,0,0.6,.5),"cm"),
+    panel.background = element_blank(),
+    panel.grid.major.y = element_line(color = "grey", size = .1),
+    panel.grid.major.x = element_line(linetype = "dotted", size = .1),
+    plot.title = element_text(size = 5, margin = unit(c(0,0.1,0.01,02),"cm"), face = "plain", hjust = 0.5), 
+    axis.line = element_line(size = .1),
+    legend.title = element_text(size = 3),
+    legend.text = element_text(size = 3, angle = 0),
+    #legend.position = c(.91,.20),
+    legend.position = 'none',
+    legend.background = element_blank(),
+    legend.box.background = element_rect(colour = "black", size = .75),
+    axis.title = element_text(size = 2.25),
+    axis.text.x = element_text(size = 2.8, margin = unit(c(0.01,0,0,0), "cm")),
+    axis.text.y = element_text(size= 2.8, color = "black", margin = unit(c(0,-.02,0,0),"cm"), angle = 0, vjust = 0), 
+    axis.text.y.right = element_text(size = 2.8, color = "black",margin = unit(c(0,0,-.5,0),"cm"), angle = 0),      
+    axis.ticks.x = element_line(size = .1),
+    axis.ticks.y = element_blank(),
+    axis.ticks.length = unit(.05, "cm")) +
+  labs(
+    x = NULL,                                                       
+    y = NULL,
+    title = "Controllability", 
+    fill = "P+") 
+
+
+
+plot <- ggdraw(BST.control) + 
+  draw_text("P+", x = .955, y = .93, size= 3) +
+    draw_text("controllable > uncontrollable", x = .24, y = 0.22, size = 3) +
+  draw_text("uncontrollable > controllable", x = .76, y = 0.22, size = 3)
+
+ggsave('/Users/kellymorrow/Box/Figures/EMOII - Limbachia et al 2020/generated_plots/Fig5_BST_posteriors_SMALL.png', plot = plot, dpi = 800, height = .9, width = 1.2)
+
+  
+  
+
+
+```
+
+
+
+
+
+```{r, include = FALSE}
+
+lBST.long <- lBST %>% gather(Measure)
+colnames(lBST.long) <- c("Measure", "Y")
+#lBST.long <- lBST.long[order(lBST.long$Measure),]
+rownames(lBST.long) <- NULL
+
+
+# calculate p+ for each measure
+iterations <- 20000
+
+lBST.P <- lBST.long %>%
+   group_by(Measure) %>%
+   dplyr::summarise((sum(Y > 0)/iterations))
+colnames(lBST.P) <- c("Measure", "P+")
+
+
+
+
+lBST.P$Pn <- lBST.P$`P+`
+ for(i in 1:length(lBST.P$Measure)) {
+   if (lBST.P$Pn[i]<.5){lBST.P$Pn[i] = 1 - lBST.P$Pn[i]}
+ }
+
+means <- lBST.long %>% group_by(Measure) %>% dplyr::summarise(mean(Y))
+lBST.P$mean <- means$`mean(Y)`
+lBST.P$index <- 1:6
+
+#lBST.P$Measure <- as.factor(lBST.P$Measure)
+
+
+
+lBST.P$label <- rep(NA, length(lBST.P$Measure))
+for(i in 1:6){
+  if(lBST.P$Measure[i] == "Intercept"){
+    lBST.P$index[i] = 6
+    lBST.P$label[i] = "Controllability"
+  }
+   else if(lBST.P$Measure[i] == "STATEmean"){
+    lBST.P$index[i] = 5
+    lBST.P$label[i] = "State mean"
+   }
+  else if(lBST.P$Measure[i] == "STATEdiff"){
+    lBST.P$index[i] = 4
+    lBST.P$label[i] = "State difference"
+  }
+  else if(lBST.P$Measure[i] == "TRAITmean"){
+    lBST.P$index[i] = 3
+    lBST.P$label[i] = "Trait mean"
+  }
+  else if(lBST.P$Measure[i] == "TRAITdiff"){
+    lBST.P$index[i] = 2
+    lBST.P$label[i] = "Trait difference"
+  }
+  else if(lBST.P$Measure[i] == "BPdiff"){
+    lBST.P$index[i] = 1
+    lBST.P$label[i] = "Button-press difference"
+  }
+}  
+
+
+
+lBST.long$index <- rep(NA, length(lBST.long$Measure))
+lBST.long$label <- rep(NA, length(lBST.long$Measure))
+for(i in 1:120000){
+  if(lBST.long$Measure[i] == "Intercept"){
+    lBST.long$index[i] = 6
+    lBST.long$label[i] = "Controllability"
+  }
+   else if(lBST.long$Measure[i] == "STATEmean"){
+    lBST.long$index[i] = 5
+    lBST.long$label[i] = "State mean"
+   }
+  else if(lBST.long$Measure[i] == "STATEdiff"){
+    lBST.long$index[i] = 4
+    lBST.long$label[i] = "State difference"
+  }
+  else if(lBST.long$Measure[i] == "TRAITmean"){
+    lBST.long$index[i] = 3
+    lBST.long$label[i] = "Trait mean"
+  }
+  else if(lBST.long$Measure[i] == "TRAITdiff"){
+    lBST.long$index[i] = 2
+    lBST.long$label[i] = "Trait difference"
+  }
+  else if(lBST.long$Measure[i] == "BPdiff"){
+    lBST.long$index[i] = 1
+    lBST.long$label[i] = "Button-press difference"
+  }
+}  
+
+lBST.long <- lBST.long[order(lBST.long$index),]
+
+
+
+
+lBST.P.RO <- lBST.P[order(lBST.P$index),]
+
+lBST.long$p <- rep(lBST.P.RO$`P+`, each = iterations)
+lBST.long$pn <- rep(lBST.P.RO$Pn, each = iterations)
+lBST.long$mean <- rep(lBST.P.RO$mean, each = iterations)
+lBST.long$p.plot <- lBST.long$p
+lBST.long$p.plot <- replace(lBST.long$p.plot, lBST.long$p.plot > 0.15 & lBST.long$p.plot < 0.85, NA)
+# lBST.long$Measure <- as.factor(lBST.long$Measure)
+
+
+
+
+```
+
+```{r}
+ROI.posterior.theme <- theme(
+    panel.background = element_blank(),
+    panel.grid.major.y = element_line(color = "grey"),
+    plot.title = element_text(size = 16, margin = unit(c(0.3,0,.1,0.2),"cm"), face = "plain"), 
+    legend.title = element_text(size = 8),
+    legend.text = element_text(size = 6),
+   #legend.position = "none",
+    axis.text.y = element_text(size= 8, color = "black", margin = unit(c(0,-0.05,0,0.05),"cm")),                     
+   # axis.line.x = element_line(color = "gray"),
+    axis.text.y.right = element_text(size = 8, color = "black",margin = unit(c(0,0,0,-0.05),"cm")),                  
+    axis.text.x = element_text(size =10, color = "black", margin = unit(c(0.02,0,0,0),"cm")),
+    plot.margin = unit(c(0,0.05,0,0.07), "cm"),
+    axis.ticks.x = element_blank(),
+    axis.ticks.y = element_blank())
+
+
+```
+
+```{r, echo = FALSE}
+
+#labels <- c("State Anxiety: mean", "Button presses","State Anxiety: difference","Intercept", "Trait Anxiety: difference","Trait Anxiety: mean")
+
+lBST <- ggplot(lBST.long, aes(x = Y, y = as.numeric(reorder(label, index)), group = label, fill = p.plot)) +
+ coord_cartesian(xlim = c(-0.4, 0.47), clip = 'off') +
+  geom_density_ridges(quantile_lines = TRUE,
+                      quantiles = 2,
+                      scale = 2.4,
+                      rel_min_height = .01,
+                      color = "#404040",
+                      size = .6) +
+  geom_vline(xintercept = 0, alpha = .85, color = "black", size = .8) +
+  scale_y_continuous(breaks = 1:length(lBST.P.RO$Measure),
+                       expand = c(0,0),
+                      labels = lBST.P.RO$label,
+                      sec.axis = sec_axis(~.,
+                                         breaks = 1:length(lBST.P.RO$Measure),
+                                         labels = format(round(lBST.P.RO$`P+`, 3),nsmall = 2))) +
+  scale_x_continuous(breaks = c(-.50,-0.25, 0,0.25,0.50)) +
+  scale_fill_gradientn(limits = c(0,1),
+                       colors = c("blue","cyan",
+                                  "gray","yellow","red"),
+                         values = c(0,0.15,
+                                    0.150000001, 0.85,
+                                    0.850000001, 1.0),
+                        breaks = c(0, 0.15, 0.85, 1)) +
+       guides(fill = guide_colorbar(barwidth = 1.5,             
+                                  barheight = 8,
+                                  nbin = 50,
+                                  frame.colour = "black",
+                                  frame.linewidth = 1.5,
+                                  ticks.colour = "black")) +
+theme_stata() +
+theme(
+    plot.background = element_blank(),
+    panel.background = element_blank(),
+    panel.grid.major.y = element_line(color = "grey"),
+    panel.grid.major.x = element_line(linetype = "dotted"),
+    #plot.title = element_text(size = 20, margin = unit(c(0,0.1,.1,02),"cm"), face = "plain", hjust = 0), 
+    # plot.title.position = "plot", 
+    # plot.caption.position =  "plot",
+legend.title = element_text(size = 12),
+    legend.text = element_text(size = 10, angle = 0),
+    legend.position = 'none',
+    legend.background = element_blank(),
+    legend.box.background = element_rect(colour = "black", size = .75),
+    axis.title = element_text(size = 12),
+    axis.text.y = element_text(size= 8, color = "black", margin = unit(c(0,-0.05,0,0.05),"cm"), angle = 0, vjust = 0),      
+    axis.text.y.right = element_text(size = 8, color = "black",margin = unit(c(0,0,0,-0.05),"cm"), angle = 0),              
+    axis.text.x = element_text(size = 8, color = "black", margin = unit(c(0.04,0,0,0),"cm")),
+    axis.ticks.y = element_blank()) +
+  labs(
+    x = NULL,
+    y = NULL,
+    title = NULL,
+    fill = "P+")
+
+
+#ggsave('/Users/kellymorrow/Desktop/emoII_lBST_posteriors.png',dpi = 800, height = 4, width = 8)
+
+plot <- ggdraw(lBST) + 
+  draw_text("P+", x = .93, y = .8, size= 10)
+
+ggsave('/Users/kellymorrow/Desktop/emoII_lBST_posteriors.png', plot = plot, dpi = 800, heigh = 2, width = 4)
+
+
+```
+
+
+
+# rBST 
+```{r, include = FALSE}
+
+rBST <- read.table('/Users/kellymorrow/Box/Lab_related/EMOII/finalResults/brain-SCR_corr/posteriors/uncon_v_con_rBST_SCR_corr.txt', header = TRUE, sep = ',')
+
+rBST$X <- NULL
+
+```
+
+
+```{r, include = FALSE}
+
+rBST.long <- rBST %>% gather(Measure)
+colnames(rBST.long) <- c("Measure", "Y")
+#rBST.long <- rBST.long[order(rBST.long$Measure),]
+rownames(rBST.long) <- NULL
+
+
+# calculate p+ for each measure
+iterations <- 20000
+
+rBST.P <- rBST.long %>%
+   group_by(Measure) %>%
+   dplyr::summarise((sum(Y > 0)/iterations))
+colnames(rBST.P) <- c("Measure", "P+")
+
+
+
+
+rBST.P$Pn <- rBST.P$`P+`
+ for(i in 1:length(rBST.P$Measure)) {
+   if (rBST.P$Pn[i]<.5){rBST.P$Pn[i] = 1 - rBST.P$Pn[i]}
+ }
+
+means <- rBST.long %>% group_by(Measure) %>% dplyr::summarise(mean(Y))
+rBST.P$mean <- means$`mean(Y)`
+rBST.P$index <- 1:6
+
+#rBST.P$Measure <- as.factor(rBST.P$Measure)
+
+
+
+rBST.P$label <- rep(NA, length(rBST.P$Measure))
+for(i in 1:6){
+  if(rBST.P$Measure[i] == "Intercept"){
+    rBST.P$index[i] = 6
+    rBST.P$label[i] = "Controllability"
+  }
+   else if(rBST.P$Measure[i] == "STATEmean"){
+    rBST.P$index[i] = 5
+    rBST.P$label[i] = "State mean"
+   }
+  else if(rBST.P$Measure[i] == "STATEdiff"){
+    rBST.P$index[i] = 4
+    rBST.P$label[i] = "State difference"
+  }
+  else if(rBST.P$Measure[i] == "TRAITmean"){
+    rBST.P$index[i] = 3
+    rBST.P$label[i] = "Trait mean"
+  }
+  else if(rBST.P$Measure[i] == "TRAITdiff"){
+    rBST.P$index[i] = 2
+    rBST.P$label[i] = "Trait difference"
+  }
+  else if(rBST.P$Measure[i] == "BPdiff"){
+    rBST.P$index[i] = 1
+    rBST.P$label[i] = "Button-press difference"
+  }
+}  
+
+
+
+rBST.long$index <- rep(NA, length(rBST.long$Measure))
+rBST.long$label <- rep(NA, length(rBST.long$Measure))
+for(i in 1:120000){
+  if(rBST.long$Measure[i] == "Intercept"){
+    rBST.long$index[i] = 6
+    rBST.long$label[i] = "Controllability"
+  }
+   else if(rBST.long$Measure[i] == "STATEmean"){
+    rBST.long$index[i] = 5
+    rBST.long$label[i] = "State mean"
+   }
+  else if(rBST.long$Measure[i] == "STATEdiff"){
+    rBST.long$index[i] = 4
+    rBST.long$label[i] = "State difference"
+  }
+  else if(rBST.long$Measure[i] == "TRAITmean"){
+    rBST.long$index[i] = 3
+    rBST.long$label[i] = "Trait mean"
+  }
+  else if(rBST.long$Measure[i] == "TRAITdiff"){
+    rBST.long$index[i] = 2
+    rBST.long$label[i] = "Trait difference"
+  }
+  else if(rBST.long$Measure[i] == "BPdiff"){
+    rBST.long$index[i] = 1
+    rBST.long$label[i] = "Button-press difference"
+  }
+}  
+
+rBST.long <- rBST.long[order(rBST.long$index),]
+
+
+
+
+rBST.P.RO <- rBST.P[order(rBST.P$index),]
+
+rBST.long$p <- rep(rBST.P.RO$`P+`, each = iterations)
+rBST.long$pn <- rep(rBST.P.RO$Pn, each = iterations)
+rBST.long$mean <- rep(rBST.P.RO$mean, each = iterations)
+rBST.long$p.plot <- rBST.long$p
+rBST.long$p.plot <- replace(rBST.long$p.plot, rBST.long$p.plot > 0.15 & rBST.long$p.plot < 0.85, NA)
+# rBST.long$Measure <- as.factor(rBST.long$Measure)
+
+
+
+
+```
+
+
+
+```{r, echo = FALSE}
+
+#labels <-  c("State Anxiety: mean", "Button presses", "Trait Anxiety: difference", "Trait Anxiety: mean","State Anxiety: difference", "Intercept")
+  
+  
+rBST <- ggplot(rBST.long, aes(x = Y, y = as.numeric(reorder(label, index)), group  = Measure, fill = p.plot)) +
+ coord_cartesian(xlim = c(-0.36, 0.3), clip = 'off') +
+geom_density_ridges(quantile_lines = TRUE,
+                      quantiles = 2,
+                      alpha = .95,
+                    rel_min_height = .01,
+                      scale = 2.3,
+                      color = "#404040",
+                      size = .6) +
+ geom_vline(xintercept = 0, alpha = .85, color = "black", size = .8) +
+  scale_y_continuous(breaks = 1:length(rBST.P.RO$Measure),
+                      expand = c(0,0),
+                      labels = rBST.P.RO$label,
+                      sec.axis = sec_axis(~.,
+                                         breaks = 1:length(rBST.P.RO$Measure),
+                                         labels = format(round(rBST.P.RO$`P+`, 3),nsmall = 2))) +
+  scale_x_continuous(breaks = c(-0.25, 0, 0.25)) +
+  scale_fill_gradientn(limits = c(0,1),
+                       colors = c("blue","cyan",
+                                  "gray","yellow","red"),
+                         values = c(0,0.15,
+                                    0.150000001, 0.85,
+                                    0.850000001, 1.0),
+                        breaks = c(0, 0.15, 0.85, 1)) +
+       guides(fill = guide_colorbar(barwidth = 1.5,             
+                                  barheight = 8,
+                                  nbin = 50,
+                                  frame.colour = "black",
+                                  frame.linewidth = 1.5,
+                                  ticks.colour = "black")) +
+theme_stata() +
+theme(
+    plot.background = element_blank(),
+    panel.background = element_blank(),
+    panel.grid.major.y = element_line(color = "grey"),
+    panel.grid.major.x = element_line(linetype = "dotted"),
+    #plot.title = element_text(size = 20, margin = unit(c(0,0.1,.1,02),"cm"), face = "plain", hjust = 0), 
+    # plot.title.position = "plot", 
+    # plot.caption.position =  "plot",
+legend.title = element_text(size = 12),
+    legend.text = element_text(size = 10, angle = 0),
+   # legend.position = 'none',
+    legend.background = element_blank(),
+    legend.box.background = element_rect(colour = "black", size = .75),
+    axis.title = element_text(size = 12),
+    axis.text.y = element_text(size= 8, color = "black", margin = unit(c(0,-0.05,0,0.05),"cm"), angle = 0, vjust = 0),      
+    axis.text.y.right = element_text(size = 8, color = "black",margin = unit(c(0,0,0,-0.05),"cm"), angle = 0),              
+    axis.text.x = element_text(size = 8, color = "black", margin = unit(c(0.04,0,0,0),"cm")),
+    axis.ticks.y = element_blank()) +
+  labs(
+    x = NULL,
+    y = NULL,
+    title = NULL,
+    fill = "P+")
+
+plot <- ggdraw(rBST) + 
+  draw_text("P+", x = .93, y = .8, size= 10)
+
+plot
+ggsave('/Users/kellymorrow/Desktop/emoII_rBST_posteriors.png', plot = plot, dpi = 800, heigh = 2, width = 4)
+
+
+
+```
+
+
+### left dAI
+/Users/kellymorrow/Box/Lab_related/emoproxII/finalResults/brain-SCR_corr/posteriors/uncon_v_con_ldAI_SCR_corr.txt
+```{r, include = FALSE}
+
+ldAI <- read.table('/Users/kellymorrow/Box/Lab_related/emoproxII/finalResults/brain-SCR_corr/posteriors/uncon_v_con_ldAI_SCR_corr.txt', header = TRUE, sep = ',')
+
+ldAI$X <- NULL
+
+```
+
+
+```{r, include = FALSE}
+
+ldAI.long <- ldAI %>% gather(Measure)
+colnames(ldAI.long) <- c("Measure", "Y")
+#ldAI.long <- ldAI.long[order(ldAI.long$Measure),]
+rownames(ldAI.long) <- NULL
+
+
+# calculate p+ for each measure
+iterations <- 20000
+
+ldAI.P <- ldAI.long %>%
+   group_by(Measure) %>%
+   dplyr::summarise((sum(Y > 0)/iterations))
+colnames(ldAI.P) <- c("Measure", "P+")
+
+
+
+
+ldAI.P$Pn <- ldAI.P$`P+`
+ for(i in 1:length(ldAI.P$Measure)) {
+   if (ldAI.P$Pn[i]<.5){ldAI.P$Pn[i] = 1 - ldAI.P$Pn[i]}
+ }
+
+means <- ldAI.long %>% group_by(Measure) %>% dplyr::summarise(mean(Y))
+ldAI.P$mean <- means$`mean(Y)`
+ldAI.P$index <- 1:6
+
+#ldAI.P$Measure <- as.factor(ldAI.P$Measure)
+
+
+
+ldAI.P$label <- rep(NA, length(ldAI.P$Measure))
+for(i in 1:6){
+  if(ldAI.P$Measure[i] == "Intercept"){
+    ldAI.P$index[i] = 6
+    ldAI.P$label[i] = "Controllability"
+  }
+   else if(ldAI.P$Measure[i] == "STATEmean"){
+    ldAI.P$index[i] = 5
+    ldAI.P$label[i] = "State mean"
+   }
+  else if(ldAI.P$Measure[i] == "STATEdiff"){
+    ldAI.P$index[i] = 4
+    ldAI.P$label[i] = "State difference"
+  }
+  else if(ldAI.P$Measure[i] == "TRAITmean"){
+    ldAI.P$index[i] = 3
+    ldAI.P$label[i] = "Trait mean"
+  }
+  else if(ldAI.P$Measure[i] == "TRAITdiff"){
+    ldAI.P$index[i] = 2
+    ldAI.P$label[i] = "Trait difference"
+  }
+  else if(ldAI.P$Measure[i] == "BPdiff"){
+    ldAI.P$index[i] = 1
+    ldAI.P$label[i] = "Button-press difference"
+  }
+}  
+
+
+
+ldAI.long$index <- rep(NA, length(ldAI.long$Measure))
+ldAI.long$label <- rep(NA, length(ldAI.long$Measure))
+for(i in 1:120000){
+  if(ldAI.long$Measure[i] == "Intercept"){
+    ldAI.long$index[i] = 6
+    ldAI.long$label[i] = "Controllability"
+  }
+   else if(ldAI.long$Measure[i] == "STATEmean"){
+    ldAI.long$index[i] = 5
+    ldAI.long$label[i] = "State mean"
+   }
+  else if(ldAI.long$Measure[i] == "STATEdiff"){
+    ldAI.long$index[i] = 4
+    ldAI.long$label[i] = "State difference"
+  }
+  else if(ldAI.long$Measure[i] == "TRAITmean"){
+    ldAI.long$index[i] = 3
+    ldAI.long$label[i] = "Trait mean"
+  }
+  else if(ldAI.long$Measure[i] == "TRAITdiff"){
+    ldAI.long$index[i] = 2
+    ldAI.long$label[i] = "Trait difference"
+  }
+  else if(ldAI.long$Measure[i] == "BPdiff"){
+    ldAI.long$index[i] = 1
+    ldAI.long$label[i] = "Button-press difference"
+  }
+}  
+
+ldAI.long <- ldAI.long[order(ldAI.long$index),]
+
+
+
+
+ldAI.P.RO <- ldAI.P[order(ldAI.P$index),]
+
+ldAI.long$p <- rep(ldAI.P.RO$`P+`, each = iterations)
+ldAI.long$pn <- rep(ldAI.P.RO$Pn, each = iterations)
+ldAI.long$mean <- rep(ldAI.P.RO$mean, each = iterations)
+ldAI.long$p.plot <- ldAI.long$p
+ldAI.long$p.plot <- replace(ldAI.long$p.plot, ldAI.long$p.plot > 0.15 & ldAI.long$p.plot < 0.85, NA)
+# ldAI.long$Measure <- as.factor(ldAI.long$Measure)
+
+
+
+
+```
+
+```{r, echo = FALSE}
+
+ggplot(ldAI.long, aes(x = Y, y = as.numeric(reorder(label, index)), group  = Measure, fill = p.plot)) +
+ coord_cartesian(xlim = c(-0.4, 0.3)) +
+stat_density_ridges(quantile_lines = TRUE,
+                      quantiles = 2,
+                      alpha = .95,
+                      scale = 2.3,
+                     # color = "#404040",
+                     color = "black",
+                      size = .8) +
+ geom_vline(xintercept = 0, linetype= "dashed",color = "black",alpha = .95, size = 1) +
+  scale_y_continuous(breaks = 1:length(ldAI.P.RO$Measure),
+                      expand = c(0,0.1),
+                      labels = ldAI.P.RO$label,
+                      sec.axis = sec_axis(~.,
+                                         breaks = 1:length(ldAI.P.RO$Measure),
+                                         labels = format(round(ldAI.P.RO$`P+`, 3),nsmall = 2))) +
+  scale_x_continuous(breaks = c(-0.21, 0, 0.19), labels = c("< 0", "0", "> 0")) +
+  scale_fill_gradientn(limits = c(0,1),
+                       colors = c("blue","cyan",
+                                  "gray","yellow","red"),
+                         values = c(0,0.15,
+                                    0.150000001, 0.85,
+                                    0.850000001, 1.0),
+                        breaks = c(0, 0.15, 0.85, 1)) +
+       guides(fill = guide_colorbar(barwidth = 1,
+                                  barheight = 5,
+                                  nbin = 50,
+                                  frame.colour = "black",
+                                  frame.linewidth = 1.5,
+                                  ticks.colour = "black")) +
+  theme_ridges(center_axis_labels = TRUE, grid = FALSE) +
+  ROI.posterior.theme +
+  labs(
+    x = NULL,
+    y = NULL,
+    title = "C) left dorsal anterior Insula",
+    fill = "P+")
+
+ggsave('/Users/kellymorrow/Box/Lab_related/emoproxII/finalResults/plots/emoII_ldaI_posteriors.png',dpi = 1200, height = 2, width = 4.7)
+
+
+```
+
+
+```{r}
+
+
+
+plot <- ggarrange(p1,p2,p3, nrow = 1)
+
+
+ggsave('/Users/kellymorrow/Desktop/test.jpg', plot = plot, width = 10, height = 3)
+```
